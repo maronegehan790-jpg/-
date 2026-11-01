@@ -12,11 +12,11 @@ description: "Task list for feature implementation of Zizo LMS"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize backend Node.js project and dependencies in `backend/package.json`
-- [ ] T002 Initialize frontend React/Vite/Tailwind project in `frontend/package.json`
-- [ ] T003 [P] Configure backend TypeScript, ESLint, and Prettier in `backend/tsconfig.json` & `backend/eslint.config.js` (ESLint 9 flat config; `.eslintrc.js` is no longer supported)
-- [ ] T004 [P] Configure frontend TypeScript, ESLint, and Prettier in `frontend/tsconfig.json` & `frontend/eslint.config.js` (ESLint 9 flat config; `.eslintrc.js` is no longer supported)
-- [ ] T005 [P] Setup Vitest/Jest configuration in `backend/vitest.config.ts` and `frontend/vitest.config.ts`
+- [X] T001 Initialize backend Node.js project and dependencies in `backend/package.json`
+- [X] T002 Initialize frontend React/Vite/Tailwind project in `frontend/package.json`
+- [X] T003 [P] Configure backend TypeScript, ESLint, and Prettier in `backend/tsconfig.json` & `backend/eslint.config.js` (ESLint 9 flat config; `.eslintrc.js` is no longer supported)
+- [X] T004 [P] Configure frontend TypeScript, ESLint, and Prettier in `frontend/tsconfig.json` & `frontend/eslint.config.js` (ESLint 9 flat config; `.eslintrc.js` is no longer supported)
+- [X] T005 [P] Setup Vitest/Jest configuration in `backend/vitest.config.ts` and `frontend/vitest.config.ts`
 
 ---
 
