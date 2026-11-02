@@ -10,7 +10,7 @@ All endpoints prefixed under `/api/v1/media`.
 - **Access**: Enrolled Student or Admin (or free preview)
 - **Security Check**:
   - If `Video.isFreePreview === true`: Allowed for all registered users.
-  - Else: Verifies `Enrollment` exists where `userId === caller.id` and `courseId === video.section.courseId` and `isRevoked === false`.
+  - Else: Verifies `Enrollment` exists where `userId === caller.id` and `courseId === video.section.courseId` and `status === 'ACTIVE'`.
 - **Response `200 OK`**:
 ```json
 {
