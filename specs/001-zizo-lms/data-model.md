@@ -209,6 +209,8 @@ model Enrollment {
   grantedAt DateTime  @default(now())
   revokedAt DateTime?
   isRevoked Boolean   @default(false)
+  revokedById  String?
+  revokeReason String?  @db.Text
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)

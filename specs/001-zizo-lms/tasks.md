@@ -74,6 +74,7 @@ description: "Task list for feature implementation of Zizo LMS"
 ### Tests for User Story 2 (Constitution Requirement) ⚠️
 - [ ] T023 [P] [US2] Write tests for Payment submission (one pending limit) in `backend/tests/integration/paymentSubmit.test.ts`
 - [ ] T024 [P] [US2] Write tests for Enrollment access (video signed URLs gated by enrollment) in `backend/tests/integration/videoAccess.test.ts`
+- [ ] T067 [P] [US2] Write integration tests for `GET /api/v1/enrollments/me` and `GET /api/v1/payments/me` ownership (caller sees only their own rows, a second student's enrollments and payments are never returned, no `userId` parameter can widen the scope, Admin and unauthenticated callers rejected, `declineReason` present only on the caller's own declined payments) in `backend/tests/integration/studentSelfService.test.ts`
 
 ### Implementation for User Story 2
 - [ ] T025 [P] [US2] Implement payment submission service (screenshot upload, EGP snapshot, pending check) in `backend/src/services/paymentService.ts`
@@ -84,6 +85,8 @@ description: "Task list for feature implementation of Zizo LMS"
 - [ ] T030 [P] [US2] Build frontend Payment Proof Upload modal in `frontend/src/components/student/PaymentModal.tsx`
 - [ ] T031 [P] [US2] Build frontend Course Player page in `frontend/src/pages/student/CoursePlayer.tsx`
 - [ ] T032 [US2] Integrate custom Video Player component supporting signed URLs in `frontend/src/components/student/VideoPlayer.tsx`
+- [ ] T068 [US2] Implement `GET /api/v1/enrollments/me` service, controller, and Student-only route returning the caller's enrolled courses with status and `progressPercent` placeholder, scoped to `req.user.id` in `backend/src/services/enrollmentService.ts` and `backend/src/routes/v1/enrollmentRoutes.ts`
+- [ ] T069 [US2] Implement `GET /api/v1/payments/me` service, controller, and Student-only route returning the caller's own payments with status, `declaredAmount`, and `declineReason`, scoped to `req.user.id` and excluding admin review fields in `backend/src/services/paymentService.ts` and `backend/src/routes/v1/studentRoutes.ts`
 - [ ] T062 [P] [US2] Build frontend Student My Courses page listing the caller's enrolled courses with progress and empty state in `frontend/src/pages/student/MyCourses.tsx`
 - [ ] T063 [P] [US2] Build frontend Student My Payments page listing the caller's own payments with status and decline reason, plus empty state in `frontend/src/pages/student/MyPayments.tsx`
 
