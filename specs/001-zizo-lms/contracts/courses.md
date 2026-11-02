@@ -39,7 +39,7 @@ All endpoints prefixed under `/api/v1/courses`.
 - **Access**: Public / Authenticated
 - **Behavior**:
   - Unenrolled users see sections, video titles, and duration, but `s3Key` is withheld and `isLocked: true`.
-  - Enrolled users (`isRevoked: false`) see `isLocked: false` and can access video details.
+  - Enrolled users (`status: ACTIVE`) see `isLocked: false` and can access video details.
 - **Response `200 OK`**:
 ```json
 {

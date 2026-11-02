@@ -54,6 +54,11 @@
   - Payment screenshot upload: Frontend requests `POST /api/v1/payments/upload-url`, receives pre-signed `PutObject` URL, uploads binary directly from browser to S3. Backend never proxies heavy file bytes.
   - Screenshot deduplication: Frontend or backend computes SHA-256 of uploaded image (`screenshotHash`) to flag duplicate submissions across accounts.
 
+### 1.7 Password Reset Email Delivery: Transactional Provider Behind an Interface
+- **Decision**: Password reset emails are sent through a transactional email provider, accessed only through an `EmailSender` interface (`sendPasswordReset(...)`) owned by the backend. Services depend on the interface, never on a provider SDK, so the concrete provider can be swapped by replacing a single adapter. Tests inject a fake sender and assert on the captured message.
+- **Deferred**: The specific provider (e.g. SES, Resend, Postmark, SendGrid) is NOT chosen in this version; the adapter and its credentials are configured via environment variables.
+- **Rationale**: Delivery is a vendor concern with no bearing on the reset flow's correctness. Keeping it behind an interface avoids blocking Phase 2 on a procurement decision and keeps the provider out of the test path.
+
 ---
 
 ## 2. Security & Compliance Checklist (Constitution Alignment)

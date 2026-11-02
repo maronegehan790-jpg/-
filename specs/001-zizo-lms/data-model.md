@@ -63,6 +63,11 @@ enum PaymentStatus {
   DECLINED
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  REVOKED
+}
+
 enum NotificationType {
   PAYMENT_APPROVED
   PAYMENT_DECLINED
@@ -208,13 +213,15 @@ model Enrollment {
   courseId  String
   grantedAt DateTime  @default(now())
   revokedAt DateTime?
-  isRevoked Boolean   @default(false)
+  status    EnrollmentStatus @default(ACTIVE)
+  revokedById  String?
+  revokeReason String?  @db.Text
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
-  @@index([userId, isRevoked])
+  @@index([userId, status])
   @@index([courseId])
 }
 
@@ -311,7 +318,7 @@ model Setting {
      ```typescript
      await prisma.$transaction([
        prisma.payment.update({ where: { id: paymentId }, data: { status: 'APPROVED', reviewedById: adminId, reviewedAt: new Date() } }),
-       prisma.enrollment.upsert({ where: { userId_courseId: { userId, courseId } }, create: { userId, courseId }, update: { isRevoked: false, revokedAt: null } })
+       prisma.enrollment.upsert({ where: { userId_courseId: { userId, courseId } }, create: { userId, courseId }, update: { status: 'ACTIVE', revokedAt: null, revokedById: null, revokeReason: null } })
      ]);
      ```
 2. **Comment Cascade**:
