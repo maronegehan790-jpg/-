@@ -107,3 +107,44 @@ All endpoints prefixed under `/api/v1/payments`.
 - **Atomic Execution**:
   - If `APPROVED`: Sets `status: APPROVED`, records `reviewedById`, creates/reactivates `Enrollment` in single Prisma transaction, and emits `payment:status_updated` socket event + Notification.
   - If `DECLINED`: Sets `status: DECLINED`, saves `declineReason`, emits notification to student.
+
+---
+
+### 5. Admin: Revoke Enrollment
+Note: this endpoint is scoped under `/api/v1/enrollments`, not `/api/v1/payments`, because it acts on the access right rather than on the payment record.
+
+- **Method**: `POST`
+- **Path**: `/api/v1/enrollments/:enrollmentId/revoke`
+- **Access**: Admin only (`requireRole('ADMIN')`)
+- **Rules**:
+  - Sets `Enrollment.status` to `REVOKED` and records `revokedById` and `revokedAt`.
+  - MUST NOT change the related `Payment` in any way: its `status`, `declineReason`, and audit fields are left untouched, so an approved payment stays `APPROVED`.
+  - Blocks new signed URLs immediately: every subsequent playback or attachment request fails the enrollment check and returns `403`.
+  - Does NOT terminate existing Socket.IO connections, and does not invalidate signed URLs already issued; those expire naturally within their ≤ 15 minute window.
+  - Idempotent: revoking an already-revoked enrollment returns `409` and changes nothing.
+- **Request Body**:
+```json
+{
+  "reason": "Chargeback reported by the student's bank."
+}
+```
+  - `reason` is optional, max 500 characters, stored for audit.
+- **Responses**:
+  - `200 OK`:
+  ```json
+  {
+    "id": "enrollment-uuid",
+    "userId": "user-uuid",
+    "courseId": "course-uuid",
+    "status": "REVOKED",
+    "revokedAt": "2026-11-02T10:15:00Z",
+    "revokedById": "admin-uuid",
+    "paymentStatus": "APPROVED"
+  }
+  ```
+- **Errors**:
+  - `400 Bad Request`: `enrollmentId` is not a valid UUID, or `reason` exceeds 500 characters.
+  - `401 Unauthorized`: Missing or invalid access token.
+  - `403 Forbidden`: Caller is authenticated but is not an Admin.
+  - `404 Not Found`: No enrollment with that ID.
+  - `409 Conflict`: Enrollment is already `REVOKED`.

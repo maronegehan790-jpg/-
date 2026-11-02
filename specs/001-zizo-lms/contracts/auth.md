@@ -93,3 +93,59 @@ All endpoints prefixed under `/api/v1/auth`.
 - **Authorization**: Bearer JWT
 - **Responses**:
   - `200 OK`: Returns current user entity with role and active enrollment IDs.
+
+---
+
+### 6. Request Password Reset
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/forgot-password`
+- **Rate Limit**: 5 requests / 15 minutes per IP AND 3 requests / hour per account
+- **Rules**:
+  - Issues a single-use reset token valid for 60 minutes; only the token hash is stored.
+  - Issuing a new token invalidates any outstanding token for that account.
+  - The token is delivered by email through the `EmailSender` interface; it is never returned in the response body.
+  - The response MUST be byte-identical whether or not the email belongs to an account, and the response time MUST NOT reveal existence (no account enumeration).
+- **Request Body**:
+```json
+{
+  "email": "student@example.com"
+}
+```
+- **Responses**:
+  - `202 Accepted` (returned for both known and unknown emails):
+  ```json
+  {
+    "message": "If an account exists for that email, a password reset link has been sent."
+  }
+  ```
+  - `400 Bad Request`: Malformed email.
+  - `429 Too Many Requests`: Rate limit exceeded.
+
+---
+
+### 7. Reset Password
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/reset-password`
+- **Rate Limit**: 5 attempts / 15 minutes per IP AND 5 attempts / hour per token
+- **Rules**:
+  - The token is single-use: it is consumed on success and cannot be replayed.
+  - An expired token (older than 60 minutes) is rejected and no password change occurs.
+  - The new password is hashed with bcrypt (cost ≥ 12) and must satisfy the same strength rules as registration.
+  - All of the user's refresh tokens are revoked on success, forcing re-login.
+- **Request Body**:
+```json
+{
+  "token": "opaque-reset-token-string",
+  "password": "NewPassword123!"
+}
+```
+- **Responses**:
+  - `200 OK`:
+  ```json
+  {
+    "message": "Password has been reset. Please log in."
+  }
+  ```
+  - `400 Bad Request`: Validation failure (e.g., password too weak).
+  - `410 Gone`: Token is expired, already used, or unknown (single generic message for all three, to avoid revealing token state).
+  - `429 Too Many Requests`: Rate limit exceeded.

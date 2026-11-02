@@ -403,7 +403,7 @@ inbox, replies, and the Student sees the reply arrive without reloading.
 - **FR-080**: Every form MUST validate inline, show per-field errors, and prevent
   submission while required fields are invalid.
 - **FR-081**: Every destructive action (delete course, delete comment, decline
-  payment, revoke access, delete message) MUST require an explicit confirmation step
+  payment, revoke access) MUST require an explicit confirmation step
   that names the target.
 - **FR-082**: Every list page MUST render a dedicated empty-state view when there
   are no items; blank screens MUST NOT ship.

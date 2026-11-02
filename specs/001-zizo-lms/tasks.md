@@ -38,6 +38,12 @@ description: "Task list for feature implementation of Zizo LMS"
 - [ ] T012 [P] Implement role-based authorization middleware (Admin vs Student) in `backend/src/middleware/auth.ts`
 - [ ] T013 [P] Setup frontend Axios instance with auth interceptors in `frontend/src/services/api.ts`
 - [ ] T014 [P] Create frontend Auth context/store in `frontend/src/store/authStore.ts`
+- [ ] T056 [P] Implement password reset service (crypto-random token hashed at rest, single-use consumption, expiry window, bcrypt re-hash of the new password, refresh-token revocation) in `backend/src/services/passwordResetService.ts`
+- [ ] T057 [P] Define the `EmailSender` interface and its transactional-provider adapter plus password-reset template in `backend/src/services/email/emailSender.ts`
+- [ ] T058 Implement forgot-password and reset-password controllers with Zod schemas and an identical response whether or not the email exists in `backend/src/controllers/authController.ts`
+- [ ] T059 Wire `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` routes with per-IP and per-account rate limiters in `backend/src/routes/v1/authRoutes.ts`
+- [ ] T060 [P] Build frontend ForgotPassword screen (email form, inline validation, loading/error/success states, same confirmation for unknown emails) in `frontend/src/pages/auth/ForgotPassword.tsx`
+- [ ] T061 [P] Build frontend ResetPassword screen (token read from URL, new password + confirm fields, expired/already-used token error state) in `frontend/src/pages/auth/ResetPassword.tsx`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -78,6 +84,8 @@ description: "Task list for feature implementation of Zizo LMS"
 - [ ] T030 [P] [US2] Build frontend Payment Proof Upload modal in `frontend/src/components/student/PaymentModal.tsx`
 - [ ] T031 [P] [US2] Build frontend Course Player page in `frontend/src/pages/student/CoursePlayer.tsx`
 - [ ] T032 [US2] Integrate custom Video Player component supporting signed URLs in `frontend/src/components/student/VideoPlayer.tsx`
+- [ ] T062 [P] [US2] Build frontend Student My Courses page listing the caller's enrolled courses with progress and empty state in `frontend/src/pages/student/MyCourses.tsx`
+- [ ] T063 [P] [US2] Build frontend Student My Payments page listing the caller's own payments with status and decline reason, plus empty state in `frontend/src/pages/student/MyPayments.tsx`
 
 ---
 
@@ -95,6 +103,9 @@ description: "Task list for feature implementation of Zizo LMS"
 - [ ] T037 [US3] Implement controllers/routes for admin payment review in `backend/src/controllers/adminPaymentController.ts` and `backend/src/routes/v1/adminPaymentRoutes.ts`
 - [ ] T038 [P] [US3] Build frontend Admin Payments Review dashboard in `frontend/src/pages/admin/PaymentReview.tsx`
 - [ ] T039 [P] [US3] Build frontend full-resolution screenshot lightbox in `frontend/src/components/admin/ScreenshotLightbox.tsx`
+- [ ] T064 [US3] Implement revoke enrollment service setting `Enrollment.status` to `REVOKED` and leaving the `Payment` record unchanged in `backend/src/services/enrollmentService.ts`
+- [ ] T065 [US3] Implement `POST /api/v1/enrollments/:enrollmentId/revoke` controller with Zod param schema and Admin-only route in `backend/src/controllers/enrollmentController.ts` and `backend/src/routes/v1/enrollmentRoutes.ts`
+- [ ] T066 [US3] Add a Revoke Access button with a confirmation step naming the student and course to the admin payment review page in `frontend/src/pages/admin/PaymentReview.tsx`
 
 ---
 
