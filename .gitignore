@@ -4,6 +4,12 @@ build/
 coverage/
 *.log
 
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # Secrets: only .env.example is committed
 .env
 .env.*
