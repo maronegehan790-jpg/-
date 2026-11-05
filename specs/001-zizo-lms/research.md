@@ -59,6 +59,12 @@
 - **Deferred**: The specific provider (e.g. SES, Resend, Postmark, SendGrid) is NOT chosen in this version; the adapter and its credentials are configured via environment variables.
 - **Rationale**: Delivery is a vendor concern with no bearing on the reset flow's correctness. Keeping it behind an interface avoids blocking Phase 2 on a procurement decision and keeps the provider out of the test path.
 
+### 1.8 Rate Limiting: `express-rate-limit` Backed by Redis
+- **Decision**: `express-rate-limit` configured with a Redis store (`rate-limit-redis` over an `ioredis` client), not the library's default in-memory store. Redis is a required service in every environment (local Docker Compose, CI, production) and its connection is read from `REDIS_URL`.
+- **Scope**: Separate limiters for login, register, forgot-password, reset-password, and payment submission. Auth and password-reset limiters are keyed **both** per IP and per account identifier so a single account cannot be attacked from rotating IPs, and a single IP cannot enumerate many accounts.
+- **Rationale**: Constitution Principle III requires login and password-reset endpoints to be rate limited per IP *and* per account; Principle VI requires Redis to hold rate-limit counters. An in-memory store breaks both: counters reset on every deploy or restart, and with more than one Node process each replica keeps its own tally, multiplying the effective limit by the replica count and leaving the endpoint unprotected in exactly the horizontally-scaled setup it needs to defend.
+- **Alternatives Considered**: Default in-memory store (rejected: not shared across processes, lost on restart, violates Principle VI). Postgres-backed counters (rejected: write amplification on a hot path the database should not carry).
+
 ---
 
 ## 2. Security & Compliance Checklist (Constitution Alignment)
@@ -70,6 +76,6 @@
 | **Server-Side Authorization** | `authenticate` (JWT) + `requireRole` + `requireEnrollment` middlewares | Principle III |
 | **Password Security** | bcrypt with salt rounds ≥ 12 | Principle III |
 | **Signed URL Expiry** | Max 15 minutes (900 seconds) | Principle III |
-| **Rate Limiting** | `express-rate-limit` on `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/payments` | Principle III |
+| **Rate Limiting** | `express-rate-limit` with a Redis store (`rate-limit-redis` + `ioredis`) on `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password`, `/api/v1/payments`; counters live in Redis, never in process memory | Principle III, Principle VI |
 | **Schema Governance** | Prisma Migrate exclusively; atomic `$transaction` for enrollment | Principle IV |
 | **UX Consistency** | Inline validation, loading spinners, actionable error alerts, 360px mobile baseline | Principle V |

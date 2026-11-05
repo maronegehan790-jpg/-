@@ -24,6 +24,15 @@ description: "Task list for feature implementation of Zizo LMS"
 
 **Purpose**: Core infrastructure, database schema, and base authentication
 
+**Infrastructure** (blocks the integration tests below — they need real PostgreSQL and Redis):
+- [ ] T070 Create `docker-compose.yml` at the repo root defining a `postgres` service (postgres:16-alpine, named volume, port 5432) and a `redis` service (redis:7-alpine, named volume, port 6379), with healthchecks on both so dependent steps can wait for readiness
+- [ ] T071 Provision separate test datastores and an integration-test harness so integration tests run against real PostgreSQL and Redis and never read or write development data:
+  - Add `TEST_DATABASE_URL` (pointing at `zizo_lms_test`, a different database from development) and `TEST_REDIS_URL` (`redis://localhost:6379/1`, a different Redis database from `REDIS_URL`) to `backend/.env.example`
+  - Add a Vitest `globalSetup` module in `backend/tests/globalSetup.ts` that loads `TEST_DATABASE_URL` and runs `prisma migrate deploy` against it **once per test run** (so the harness picks up whatever migrations exist, including the initial one created in T008)
+  - Add a Vitest `setupFiles` module in `backend/tests/setup.ts` that uses `beforeEach` to truncate all tables in the test database and flush the test Redis database, giving every test a clean slate
+  - Both modules must refuse to run (throw and abort the run) if `TEST_DATABASE_URL` equals `DATABASE_URL`, or if `TEST_REDIS_URL` equals `REDIS_URL` — a misconfigured env must fail loudly instead of truncating development data
+  - Disable file parallelism for the integration test project only (e.g. a single fork/thread for integration), since those files share one database and truncate between tests; unit tests keep running in parallel
+
 **⚠️ CRITICAL TESTS**: Authentication tests must be written first per constitution.
 
 - [ ] T006 [P] Write integration tests for authentication (login, JWT, role guarding) in `backend/tests/integration/auth.test.ts`
@@ -32,7 +41,9 @@ description: "Task list for feature implementation of Zizo LMS"
 **Implementation**:
 - [ ] T007 Define complete Prisma schema (User, Course, Payment, Enrollment, etc.) in `backend/prisma/schema.prisma`
 - [ ] T008 Generate initial Prisma migration and client
+- [ ] T072 Add `postgres` (postgres:16-alpine) and `redis` (redis:7-alpine) service containers with health options to the `backend` job in `.github/workflows/ci.yml`, set `TEST_DATABASE_URL` and `REDIS_URL` in the job env, and run `prisma migrate deploy` before `npm test` so CI executes the integration tests against real services
 - [ ] T009 [P] Setup Express app, global error handling, and Zod validation middleware in `backend/src/app.ts` and `backend/src/middleware/error.ts`
+- [ ] T073 Implement the shared Redis client (`REDIS_URL`, ioredis) and a Redis-backed rate limiter using `express-rate-limit` with `rate-limit-redis` — counters stored in Redis, not process memory, per constitution Principle VI — exposing per-IP and per-account limiters for the auth routes (login, register, forgot-password, reset-password) in `backend/src/lib/redis.ts` and `backend/src/middleware/rateLimit.ts`; consumed by T011 and T059
 - [ ] T010 [P] Implement authentication service (bcrypt, JWT) in `backend/src/services/authService.ts`
 - [ ] T011 [P] Implement Auth controller and routes in `backend/src/controllers/authController.ts` and `backend/src/routes/v1/authRoutes.ts`
 - [ ] T012 [P] Implement role-based authorization middleware (Admin vs Student) in `backend/src/middleware/auth.ts`

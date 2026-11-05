@@ -13,6 +13,7 @@ The domain model cleanly separates course catalog structure, authentication life
 ```mermaid
 erDiagram
     User ||--o{ RefreshToken : has
+    User ||--o{ PasswordResetToken : requests
     User ||--o{ Enrollment : holds
     User ||--o{ Payment : submits
     User ||--o{ Comment : writes
@@ -86,6 +87,7 @@ model User {
   updatedAt     DateTime       @updatedAt
 
   refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   enrollments   Enrollment[]
   payments      Payment[]      @relation("StudentPayments")
   reviewedPayments Payment[]   @relation("AdminReviewedPayments")
@@ -113,6 +115,19 @@ model RefreshToken {
 
   @@index([userId])
   @@index([token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique // SHA-256 of the emailed token; the raw token is never stored
+  expiresAt DateTime
+  usedAt    DateTime? // Set on first successful consumption; makes the token single-use
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Course {
@@ -328,3 +343,7 @@ model Setting {
    - The `Message` entity has no `updatedAt` column and no edit/delete endpoints are provided, preserving a permanent audit record.
 4. **Duplicate Screenshot Detection**:
    - `screenshotHash` stores SHA-256 of the payment receipt image, allowing the Admin review panel to flag duplicate receipts across payments.
+5. **Password Reset Tokens**:
+   - **Hash only at rest**: `tokenHash` stores the SHA-256 of the token; the raw token exists only in the email sent to the user. A database leak therefore yields no usable reset tokens.
+   - **Single-use**: `usedAt` is null until the token is consumed, and is stamped inside the same transaction that re-hashes the password. A token whose `usedAt` is non-null is rejected, so a reset link cannot be replayed.
+   - **Expiring**: `expiresAt` bounds the validity window; a token past its expiry is rejected even if unused. Expired and used rows can be pruned without touching the `User` record.
