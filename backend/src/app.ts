@@ -29,6 +29,7 @@ import helmet from 'helmet';
 
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { authRoutes } from './routes/v1/authRoutes.js';
 
 const app = express();
 
@@ -78,6 +79,9 @@ app.get('/health', (_req, res) => {
  */
 export const apiV1 = express.Router();
 app.use('/api/v1', apiV1);
+
+// Feature routers. T011 owns auth; later tasks mount their own here.
+apiV1.use('/auth', authRoutes);
 
 // Must stay last, in this order.
 app.use(notFoundHandler);
