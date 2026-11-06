@@ -39,8 +39,8 @@ description: "Task list for feature implementation of Zizo LMS"
 - [X] T006a [P] Write integration tests for the forgot-password / reset-password flow (token issued, single-use, expiry rejected, per-IP and per-account rate limit, password re-hashed on success, no account enumeration in the response) in `backend/tests/integration/passwordReset.test.ts`
 
 **Implementation**:
-- [ ] T007 Define complete Prisma schema (User, Course, Payment, Enrollment, etc.) in `backend/prisma/schema.prisma`
-- [ ] T008 Generate initial Prisma migration and client
+- [X] T007 Define complete Prisma schema (User, Course, Payment, Enrollment, etc.) in `backend/prisma/schema.prisma`
+- [X] T008 Generate initial Prisma migration and client
 - [ ] T072 Add `postgres` (postgres:16-alpine) and `redis` (redis:7-alpine) service containers with health options to the `backend` job in `.github/workflows/ci.yml`, set `TEST_DATABASE_URL` and `REDIS_URL` in the job env, and run `prisma migrate deploy` before `npm test` so CI executes the integration tests against real services
 - [ ] T009 [P] Setup Express app, global error handling, and Zod validation middleware in `backend/src/app.ts` and `backend/src/middleware/error.ts`
 - [ ] T073 Implement the shared Redis client (`REDIS_URL`, ioredis) and a Redis-backed rate limiter using `express-rate-limit` with `rate-limit-redis` — counters stored in Redis, not process memory, per constitution Principle VI — exposing per-IP and per-account limiters for the auth routes (login, register, forgot-password, reset-password) in `backend/src/lib/redis.ts` and `backend/src/middleware/rateLimit.ts`; consumed by T011 and T059
