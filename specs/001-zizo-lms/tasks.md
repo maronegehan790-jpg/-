@@ -57,7 +57,11 @@ description: "Task list for feature implementation of Zizo LMS"
       - `verifyCredentials` always runs one bcrypt comparison, against a dummy hash when no user matches, so "no such account" is not measurably faster than "wrong password" (no enumeration, contract section 6).
       - The `role` claim in the access token is a hint for cheap UI decisions, never an authority. T012 MUST re-read the role from the database; `auth.test.ts:467` asserts a token claiming ADMIN for a STUDENT account is still refused.
 - [ ] T011 [P] Implement Auth controller and routes in `backend/src/controllers/authController.ts` and `backend/src/routes/v1/authRoutes.ts`
-- [ ] T012 [P] Implement role-based authorization middleware (Admin vs Student) in `backend/src/middleware/auth.ts`
+- [X] T012 [P] Implement role-based authorization middleware (Admin vs Student) in `backend/src/middleware/auth.ts`
+      - `requireAuth` re-reads the user from the database on every request and ignores the token's `role` claim entirely. Verified by probe: a token signed with our own secret claiming ADMIN for a STUDENT row still gets 403, and a token issued while the user was ADMIN gets 403 after demotion. Deliberately not cached in Redis — a cache would reintroduce exactly the staleness the database read exists to remove.
+      - `req.user` is the sanitised `PublicUser`, not the Prisma `User`, so a controller that spreads it into a response body cannot leak `passwordHash`. This module establishes the `Express.Request.user` augmentation.
+      - `requireRole` returns 401 (not a crash or a pass) when reached without an authenticated user, so a misordered route fails closed. `requireAdmin`/`requireStudent` bundle `requireAuth` to make that misordering hard.
+      - `requireAuth` is a plain `async` handler with no try/catch: Express 5 forwards a rejected handler promise to the error handler (`router/index.js` checks `isPromise`), so a database outage becomes the generic 500. A `void (async () => ...)()` wrapper would hand the router `undefined` and turn an unexpected throw into an unhandled rejection.
 - [ ] T013 [P] Setup frontend Axios instance with auth interceptors in `frontend/src/services/api.ts`
 - [ ] T014 [P] Create frontend Auth context/store in `frontend/src/store/authStore.ts`
 - [ ] T056 [P] Implement password reset service (crypto-random token hashed at rest, single-use consumption, expiry window, bcrypt re-hash of the new password, refresh-token revocation) in `backend/src/services/passwordResetService.ts`
