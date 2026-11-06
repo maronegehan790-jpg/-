@@ -50,7 +50,12 @@ description: "Task list for feature implementation of Zizo LMS"
       - Under `NODE_ENV=test` the client resolves `TEST_REDIS_URL`, not `REDIS_URL`. The T071 harness flushes only the database named by `TEST_REDIS_URL`, so sharing it is what keeps rate-limit counters from leaking between tests.
       - T011/T059 MUST mount these limiters before the Zod validation middleware on each route. `passwordReset.test.ts` floods reset-password with an invalid password and still expects 429, so a limiter placed after validation would never be reached.
       - Redis keys are truncated SHA-256 digests of the email or reset token, never the raw value: a rate-limit counter should not accumulate user emails, and a raw reset token in a key would be a second copy of a credential the database stores only as a hash.
-- [ ] T010 [P] Implement authentication service (bcrypt, JWT) in `backend/src/services/authService.ts`
+- [X] T010 [P] Implement authentication service (bcrypt, JWT) in `backend/src/services/authService.ts`
+      - Also added `backend/src/lib/prisma.ts` (shared client; no task owned it and T010 is the first consumer needing database access) and `backend/src/config/jwt.ts` (Zod-validated auth secrets, kept out of `config/env.ts` so importing the app without auth does not require them).
+      - Refresh tokens are signed JWTs **and** persisted rows. A stateless token cannot be revoked, which the contract requires at logout (section 4) and on password reset (section 7), so the database is the revocation authority. The `token` column stores the exact emitted string because `auth.test.ts` looks a token up by the raw cookie value.
+      - The signed payload carries a random `jti`. Without it the only varying claims are `iat`/`exp` at one-second resolution, so two logins in the same second sign an identical token and collide with the `@unique` constraint — an ordinary repeat login would 500. Caught by a probe before any suite ran.
+      - `verifyCredentials` always runs one bcrypt comparison, against a dummy hash when no user matches, so "no such account" is not measurably faster than "wrong password" (no enumeration, contract section 6).
+      - The `role` claim in the access token is a hint for cheap UI decisions, never an authority. T012 MUST re-read the role from the database; `auth.test.ts:467` asserts a token claiming ADMIN for a STUDENT account is still refused.
 - [ ] T011 [P] Implement Auth controller and routes in `backend/src/controllers/authController.ts` and `backend/src/routes/v1/authRoutes.ts`
 - [ ] T012 [P] Implement role-based authorization middleware (Admin vs Student) in `backend/src/middleware/auth.ts`
 - [ ] T013 [P] Setup frontend Axios instance with auth interceptors in `frontend/src/services/api.ts`
