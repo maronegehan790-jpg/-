@@ -13,6 +13,58 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    # Real PostgreSQL and Redis for the integration tests (T072). Constitution
+    # Principle II requires integration tests to run against a real database,
+    # and Principle VI puts rate-limit counters in Redis, so both services must
+    # exist in CI rather than being mocked.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          # Only the development database is created here. The test database
+          # (zizo_lms_test) is provisioned by the T071 globalSetup.
+          POSTGRES_DB: zizo_lms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d zizo_lms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 5s
+
+    # backend/.env is gitignored, so every variable the test harness reads has to
+    # be supplied here. The test datastores MUST differ from the development ones
+    # or the T071 guards abort the run: a different database for PostgreSQL
+    # (zizo_lms vs zizo_lms_test) and a different database index for Redis
+    # (0 vs 1).
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zizo_lms?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zizo_lms_test?schema=public
+      REDIS_URL: redis://localhost:6379/0
+      TEST_REDIS_URL: redis://localhost:6379/1
+      # CI-only throwaway values. Not secrets: they sign tokens that exist for
+      # the duration of one test run. Length satisfies the 32-char minimum.
+      JWT_ACCESS_SECRET: ci_access_secret_for_tests_only_32chars
+      JWT_REFRESH_SECRET: ci_refresh_secret_for_tests_only_32chars
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7

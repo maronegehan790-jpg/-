@@ -41,7 +41,8 @@ description: "Task list for feature implementation of Zizo LMS"
 **Implementation**:
 - [X] T007 Define complete Prisma schema (User, Course, Payment, Enrollment, etc.) in `backend/prisma/schema.prisma`
 - [X] T008 Generate initial Prisma migration and client
-- [ ] T072 Add `postgres` (postgres:16-alpine) and `redis` (redis:7-alpine) service containers with health options to the `backend` job in `.github/workflows/ci.yml`, set `TEST_DATABASE_URL` and `REDIS_URL` in the job env, and run `prisma migrate deploy` before `npm test` so CI executes the integration tests against real services
+- [X] T072 Add `postgres` (postgres:16-alpine) and `redis` (redis:7-alpine) service containers with health options to the `backend` job in `.github/workflows/ci.yml`, set `TEST_DATABASE_URL` and `REDIS_URL` in the job env, and run `prisma migrate deploy` before `npm test` so CI executes the integration tests against real services
+      - Migrations are applied by the T071 `globalSetup`, which creates the test database and runs `prisma migrate deploy` against `TEST_DATABASE_URL` once per run. No separate CI step: a standalone `prisma migrate deploy` would target `DATABASE_URL` (the development database) and leave the test database unmigrated.
 - [ ] T009 [P] Setup Express app, global error handling, and Zod validation middleware in `backend/src/app.ts` and `backend/src/middleware/error.ts`
 - [ ] T073 Implement the shared Redis client (`REDIS_URL`, ioredis) and a Redis-backed rate limiter using `express-rate-limit` with `rate-limit-redis` — counters stored in Redis, not process memory, per constitution Principle VI — exposing per-IP and per-account limiters for the auth routes (login, register, forgot-password, reset-password) in `backend/src/lib/redis.ts` and `backend/src/middleware/rateLimit.ts`; consumed by T011 and T059
 - [ ] T010 [P] Implement authentication service (bcrypt, JWT) in `backend/src/services/authService.ts`
