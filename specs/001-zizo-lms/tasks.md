@@ -26,7 +26,7 @@ description: "Task list for feature implementation of Zizo LMS"
 
 **Infrastructure** (blocks the integration tests below — they need real PostgreSQL and Redis):
 - [X] T070 Create `docker-compose.yml` at the repo root defining a `postgres` service (postgres:16-alpine, named volume, port 5432) and a `redis` service (redis:7-alpine, named volume, port 6379), with healthchecks on both so dependent steps can wait for readiness
-- [ ] T071 Provision separate test datastores and an integration-test harness so integration tests run against real PostgreSQL and Redis and never read or write development data:
+- [X] T071 Provision separate test datastores and an integration-test harness so integration tests run against real PostgreSQL and Redis and never read or write development data:
   - Add `TEST_DATABASE_URL` (pointing at `zizo_lms_test`, a different database from development) and `TEST_REDIS_URL` (`redis://localhost:6379/1`, a different Redis database from `REDIS_URL`) to `backend/.env.example`
   - Add a Vitest `globalSetup` module in `backend/tests/globalSetup.ts` that loads `TEST_DATABASE_URL` and runs `prisma migrate deploy` against it **once per test run** (so the harness picks up whatever migrations exist, including the initial one created in T008)
   - Add a Vitest `setupFiles` module in `backend/tests/setup.ts` that uses `beforeEach` to truncate all tables in the test database and flush the test Redis database, giving every test a clean slate
