@@ -35,8 +35,8 @@ description: "Task list for feature implementation of Zizo LMS"
 
 **⚠️ CRITICAL TESTS**: Authentication tests must be written first per constitution.
 
-- [ ] T006 [P] Write integration tests for authentication (login, JWT, role guarding) in `backend/tests/integration/auth.test.ts`
-- [ ] T006a [P] Write integration tests for the forgot-password / reset-password flow (token issued, single-use, expiry rejected, per-IP and per-account rate limit, password re-hashed on success, no account enumeration in the response) in `backend/tests/integration/passwordReset.test.ts`
+- [X] T006 [P] Write integration tests for authentication (login, JWT, role guarding) in `backend/tests/integration/auth.test.ts`
+- [X] T006a [P] Write integration tests for the forgot-password / reset-password flow (token issued, single-use, expiry rejected, per-IP and per-account rate limit, password re-hashed on success, no account enumeration in the response) in `backend/tests/integration/passwordReset.test.ts`
 
 **Implementation**:
 - [ ] T007 Define complete Prisma schema (User, Course, Payment, Enrollment, etc.) in `backend/prisma/schema.prisma`
