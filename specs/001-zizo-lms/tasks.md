@@ -127,7 +127,14 @@ description: "Task list for feature implementation of Zizo LMS"
       - Redis failures fail closed. The limiters keep `express-rate-limit`'s default `passOnStoreError: false` (checked in v8.7.3 source), so a store error reaches the global handler as the generic 500 instead of letting the request through unthrottled. This is the existing behaviour for register/login too, now documented in the route file header.
       - The controller's header comment, which said these routes were not yet mounted, was updated to match. No controller logic changed.
       - Not run: no test suites, per instruction. Verified with `tsc --noEmit`, `eslint`, and `prettier --check`, all clean.
-- [ ] T060 [P] Build frontend ForgotPassword screen (email form, inline validation, loading/error/success states, same confirmation for unknown emails) in `frontend/src/pages/auth/ForgotPassword.tsx`
+- [X] T060 [P] Build frontend ForgotPassword screen (email form, inline validation, loading/error/success states, same confirmation for unknown emails) in `frontend/src/pages/auth/ForgotPassword.tsx`
+      - The confirmation is a client-side constant rendered on any 202; the response body is never read. The known-email and unknown-email screens are therefore identical by construction, even if the server's wording changes later.
+      - Server error text is never displayed. 400 maps to a fixed field message, 429 to a fixed "wait before trying again", network/timeout to the client-authored `toApiError` message, and everything else (5xx, unexpected statuses) to one generic message.
+      - Duplicate submission is blocked by a synchronous `useRef` guard, not just the `submitting` state: two clicks in one frame both read the pre-update state, and each extra request would spend one of the account's three hourly resets.
+      - While sending, the input is `readOnly` and the button `aria-disabled` rather than `disabled`, so keyboard focus is not dropped to the document body (FR-084). Focus moves to the confirmation heading on success and back to the input on "Use a different email".
+      - Inline validation shows after blur or submit, then re-validates live so the error clears as soon as the address is valid (FR-080). The pattern requires a dot in the domain, matching the API's rejection of `missing@tld`; the server remains the authority.
+      - Not mounted in a router. The app has no router yet, and T060 does not own one; react-router is not a dependency. The login link is a plain `<a href="/login">` for whichever task adds routing. T061's emailed link targets `/reset-password`, so routing must serve both paths.
+      - Not run: no test suites, per instruction. Verified with `tsc --noEmit`, `eslint`, `prettier --check`, and `vite build`, all clean.
 - [ ] T061 [P] Build frontend ResetPassword screen (token read from URL, new password + confirm fields, expired/already-used token error state) in `frontend/src/pages/auth/ResetPassword.tsx`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
