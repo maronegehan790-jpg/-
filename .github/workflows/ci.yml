@@ -6,6 +6,17 @@ on:
   push:
     branches: [main]
 
+# Read-only token: no job here writes to the repository.
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes its run in progress. Pushes to main
+# get a group of their own (the run id), so they are never cancelled or replaced
+# while queued, and every merged commit gets a complete result.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend
@@ -79,6 +90,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Explicit rather than relying on @prisma/client's postinstall hook, so the
+      # typed client always matches the committed schema before typecheck runs.
+      # Generation reads only prisma/schema.prisma and never connects to a database.
+      # Migrations are not run here: the T071 globalSetup applies them to
+      # TEST_DATABASE_URL when `npm test` starts.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -97,6 +116,12 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+
+    # Same value as frontend/.env.example. Not a secret: it is the public API base
+    # URL, and src/services/api.ts throws at module load when it is unset.
+    env:
+      VITE_API_URL: http://localhost:5000/api/v1
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -116,6 +141,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
