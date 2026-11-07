@@ -1,18 +1,21 @@
 /**
  * T011 - Auth controllers: register, login, me, refresh, logout.
+ * T058 - Password reset controllers: forgot-password, reset-password.
  *
- * Contract: specs/001-zizo-lms/contracts/auth.md sections 1-5
+ * Contract: specs/001-zizo-lms/contracts/auth.md sections 1-7
  * Spec:     FR-001 (self-registration always yields STUDENT), FR-003 (unique
  *           email), FR-004 (login / logout)
  * Constitution: Principle I - Zod validates every body at this boundary before
- *           any service call; business logic stays in `services/authService.ts`.
+ *           any service call; business logic stays in `services/authService.ts`
+ *           and `services/passwordResetService.ts`. Principle III - no account
+ *           enumeration.
  *
  * This layer owns HTTP only: status codes, response envelopes, and the refresh
  * cookie. Credential checking, hashing, and the token lifecycle belong to the
- * service and are called, never reimplemented here.
+ * services and are called, never reimplemented here.
  *
- * Sections 6-7 of the contract (forgot-password, reset-password) are T058/T059
- * and are deliberately absent from this file.
+ * The routes for sections 6-7 are T059 and are not yet mounted in
+ * `authRoutes.ts`; until then these two handlers are exported but unreachable.
  */
 
 import jwt from 'jsonwebtoken';
@@ -32,6 +35,7 @@ import {
   verifyCredentials,
   verifyRefreshToken,
 } from '../services/authService.js';
+import { consumePasswordReset, requestPasswordReset } from '../services/passwordResetService.js';
 
 // --- Validation schemas ----------------------------------------------------
 
@@ -86,6 +90,45 @@ export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'is required'),
 });
+
+/**
+ * Forgot-password body. Only the address shape is checked; whether it belongs
+ * to an account is never decided here, so validation cannot become an oracle.
+ */
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+/**
+ * Reset-password body.
+ *
+ * The new password goes through the registration `passwordSchema` (contract
+ * section 7: "the same strength rules as registration"). This must reject
+ * before the service is called: `consumePasswordReset` claims the token, so a
+ * weak password that reached it would burn a link the user still needs
+ * (`passwordReset.test.ts:399`).
+ *
+ * The token is checked for presence and a generous upper bound only, never for
+ * format. A token that is well-formed but wrong, and one that is not even the
+ * right shape, are both just "unknown" and must leave as the same 410 the
+ * service raises; a format rule here would answer some of them with 400
+ * instead. The bound only stops arbitrarily large strings being hashed. The
+ * value is not trimmed: it is an exact credential, not user prose.
+ */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'is required').max(256, 'must be at most 256 characters'),
+  password: passwordSchema,
+});
+
+/**
+ * Contract section 6. A single constant, so the known-email and unknown-email
+ * bodies are byte-identical by construction rather than by care.
+ */
+const FORGOT_PASSWORD_MESSAGE =
+  'If an account exists for that email, a password reset link has been sent.';
+
+/** Contract section 7, 200 body. */
+const RESET_PASSWORD_MESSAGE = 'Password has been reset. Please log in.';
 
 // --- Refresh cookie --------------------------------------------------------
 
@@ -320,4 +363,48 @@ export const logout: RequestHandler = async (req, res) => {
   // the original.
   res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions());
   res.status(200).json({ message: 'Logged out.' });
+};
+
+/**
+ * POST /api/v1/auth/forgot-password - contract section 6.
+ *
+ * Always 202 with the same fixed body; 400 only for a malformed address.
+ *
+ * `requestPasswordReset` resolves to `void` for a known and an unknown email
+ * alike, so this handler has nothing to branch on and no way to reveal which
+ * case it was. The token goes out by mail inside the service and never passes
+ * through here.
+ */
+export const forgotPassword: RequestHandler = async (req, res) => {
+  const { email } = forgotPasswordSchema.parse(req.body);
+
+  await requestPasswordReset(email);
+
+  res.status(202).json({ message: FORGOT_PASSWORD_MESSAGE });
+};
+
+/**
+ * POST /api/v1/auth/reset-password - contract section 7.
+ *
+ * 200 on success; 400 for a missing token or a weak password; 410 for a token
+ * that is unknown, expired, or already used.
+ *
+ * The 410 is raised inside the service as one shared `gone(...)` and is left to
+ * propagate untouched. Catching it here to re-map or annotate it is exactly how
+ * the three states would start to differ, so this handler deliberately has no
+ * try/catch: it is never told which of the three applied.
+ *
+ * The audit line carries the user id and session count only - never the token,
+ * its hash, or the password.
+ */
+export const resetPassword: RequestHandler = async (req, res) => {
+  const { token, password } = resetPasswordSchema.parse(req.body);
+
+  const { userId, revokedSessions } = await consumePasswordReset(token, password);
+
+  console.info(
+    `[password-reset] password changed for user ${userId}; revoked ${revokedSessions} session(s)`,
+  );
+
+  res.status(200).json({ message: RESET_PASSWORD_MESSAGE });
 };
