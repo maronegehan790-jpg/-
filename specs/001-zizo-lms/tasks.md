@@ -121,7 +121,12 @@ description: "Task list for feature implementation of Zizo LMS"
       - Schemas `forgotPasswordSchema` and `resetPasswordSchema` are exported for T059 to mount behind the limiters, matching how `registerSchema`/`loginSchema` are consumed. The handlers also re-parse, as the T011 handlers do.
       - The one log line on success records user id and revoked-session count only; no token, hash, or password is logged anywhere.
       - Not run: no test suites, per instruction. Verified with `tsc --noEmit`, `eslint`, and `prettier --check`, all clean. Routes are T059, so both handlers are unreachable until it lands.
-- [ ] T059 Wire `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` routes with per-IP and per-account rate limiters in `backend/src/routes/v1/authRoutes.ts`
+- [X] T059 Wire `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` routes with per-IP and per-account rate limiters in `backend/src/routes/v1/authRoutes.ts`
+      - Reuses the four T073 limiters (`forgotPasswordIpLimiter`, `forgotPasswordAccountLimiter`, `resetPasswordIpLimiter`, `resetPasswordTokenLimiter`); no new limiter was written. Order on both routes is IP limiter → account/token limiter → `validateBody(schema)` → controller, matching login.
+      - No enumeration through the 429: the per-account limiter counts a digest of whatever email is submitted, registered or not, and the per-token limiter counts every token value, live or not, so throttling trips on the same request count in every case. Every 429 is the same `tooManyRequests()` envelope.
+      - Redis failures fail closed. The limiters keep `express-rate-limit`'s default `passOnStoreError: false` (checked in v8.7.3 source), so a store error reaches the global handler as the generic 500 instead of letting the request through unthrottled. This is the existing behaviour for register/login too, now documented in the route file header.
+      - The controller's header comment, which said these routes were not yet mounted, was updated to match. No controller logic changed.
+      - Not run: no test suites, per instruction. Verified with `tsc --noEmit`, `eslint`, and `prettier --check`, all clean.
 - [ ] T060 [P] Build frontend ForgotPassword screen (email form, inline validation, loading/error/success states, same confirmation for unknown emails) in `frontend/src/pages/auth/ForgotPassword.tsx`
 - [ ] T061 [P] Build frontend ResetPassword screen (token read from URL, new password + confirm fields, expired/already-used token error state) in `frontend/src/pages/auth/ResetPassword.tsx`
 

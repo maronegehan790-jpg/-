@@ -14,8 +14,7 @@
  * cookie. Credential checking, hashing, and the token lifecycle belong to the
  * services and are called, never reimplemented here.
  *
- * The routes for sections 6-7 are T059 and are not yet mounted in
- * `authRoutes.ts`; until then these two handlers are exported but unreachable.
+ * The routes for sections 6-7 are mounted in `authRoutes.ts` (T059).
  */
 
 import jwt from 'jsonwebtoken';
