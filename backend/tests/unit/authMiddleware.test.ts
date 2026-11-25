@@ -1,5 +1,5 @@
 import type { Role, User } from '@prisma/client';
-import express, { type RequestHandler } from 'express';
+import express, { type Request, type RequestHandler, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,7 +24,7 @@ const reached = vi.fn();
 // never inferred from the absence of a 401/403.
 function guardedApp(guard: RequestHandler | RequestHandler[]): express.Express {
   const app = express();
-  app.get('/guarded', guard, (req, res) => {
+  app.get('/guarded', guard, (req: Request, res: Response) => {
     reached(req.user);
     res.status(200).json({ reached: true, user: req.user });
   });

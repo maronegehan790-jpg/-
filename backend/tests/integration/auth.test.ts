@@ -118,16 +118,6 @@ async function loginFor(user: SeededUser): Promise<{ accessToken: string; refres
   };
 }
 
-// An Admin-only endpoint, used to prove server-side role guarding (FR-005).
-const ADMIN_ONLY_ENDPOINT = '/api/v1/courses';
-const ADMIN_ONLY_PAYLOAD = {
-  title: 'Advanced Node.js',
-  slug: `advanced-nodejs-${Math.random().toString(36).slice(2)}`,
-  description: 'In-depth backend architecture.',
-  price: 750,
-  thumbnailKey: 'courses/thumbnails/thumb-123.jpg',
-};
-
 // ---------------------------------------------------------------------------
 
 describe('POST /api/v1/auth/register', () => {
@@ -369,6 +359,18 @@ describe('GET /api/v1/auth/me (JWT verification)', () => {
     const res = await api().get('/api/v1/auth/me').set('Authorization', `Bearer ${accessToken}`);
     expect(res.status).toBe(401);
   });
+
+  it('reports the database role, not the ADMIN role claimed by a Student token', async () => {
+    const student = await seedUser({ email: 'claims-admin@example.com', role: 'STUDENT' });
+    const forged = jwt.sign({ sub: student.id, role: 'ADMIN' }, requireEnv('JWT_ACCESS_SECRET'), {
+      expiresIn: '15m',
+    });
+
+    const res = await api().get('/api/v1/auth/me').set('Authorization', `Bearer ${forged}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: student.id, role: 'STUDENT' });
+  });
 });
 
 describe('POST /api/v1/auth/refresh', () => {
@@ -446,48 +448,6 @@ describe('POST /api/v1/auth/logout', () => {
   });
 });
 
-describe('Role guarding on Admin-only endpoints (FR-005)', () => {
-  it('rejects an anonymous caller with 401', async () => {
-    const res = await api().post(ADMIN_ONLY_ENDPOINT).send(ADMIN_ONLY_PAYLOAD);
-    expect(res.status).toBe(401);
-  });
-
-  it('rejects an authenticated Student with 403', async () => {
-    const student = await seedUser({ email: 'student-guard@example.com', role: 'STUDENT' });
-    const { accessToken } = await loginFor(student);
-
-    const res = await api()
-      .post(ADMIN_ONLY_ENDPOINT)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send(ADMIN_ONLY_PAYLOAD);
-
-    expect(res.status).toBe(403);
-  });
-
-  it('rejects a Student whose token claims the ADMIN role (role is read from the database)', async () => {
-    const student = await seedUser({ email: 'claims-admin@example.com', role: 'STUDENT' });
-    const forged = jwt.sign({ sub: student.id, role: 'ADMIN' }, requireEnv('JWT_ACCESS_SECRET'), {
-      expiresIn: '15m',
-    });
-
-    const res = await api()
-      .post(ADMIN_ONLY_ENDPOINT)
-      .set('Authorization', `Bearer ${forged}`)
-      .send(ADMIN_ONLY_PAYLOAD);
-
-    expect(res.status).toBe(403);
-  });
-
-  it('allows an authenticated Admin through the guard', async () => {
-    const admin = await seedUser({ email: 'admin-guard@example.com', role: 'ADMIN' });
-    const { accessToken } = await loginFor(admin);
-
-    const res = await api()
-      .post(ADMIN_ONLY_ENDPOINT)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send(ADMIN_ONLY_PAYLOAD);
-
-    expect(res.status).not.toBe(401);
-    expect(res.status).not.toBe(403);
-  });
-});
+// Role guarding (FR-005) is covered against the real middleware in
+// tests/unit/authMiddleware.test.ts. Admin-only endpoint authorization tests
+// belong with the Courses routes (T015/T019).
