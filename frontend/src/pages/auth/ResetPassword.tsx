@@ -12,8 +12,8 @@
  *
  * Route: this screen must be served at `/reset-password`. The T057 mail builds
  * `${CLIENT_URL}/reset-password?token=<token>` (`buildResetUrl` in
- * `backend/src/services/email/emailSender.ts`). The app has no router yet, so
- * mounting it there belongs to the routing task, as with T060's ForgotPassword.
+ * `backend/src/services/email/emailSender.ts`). It is mounted at that path in
+ * `App.tsx`.
  *
  * The token is a bearer credential for the account until it is spent, so it is
  * read from the URL once and then removed from the address bar (see

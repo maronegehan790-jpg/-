@@ -15,9 +15,8 @@
  * echoing the response. Nothing the user sees can differ between the two
  * cases, even if the server's wording later changes.
  *
- * Not mounted in a router: the app has no router yet, and T060 does not own
- * one. The login link is a plain anchor to `/login`, the path the routing task
- * is expected to serve.
+ * Mounted at `/forgot-password` in `App.tsx`. The login link is a plain anchor
+ * to `/login`, which no route serves yet.
  */
 
 import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
