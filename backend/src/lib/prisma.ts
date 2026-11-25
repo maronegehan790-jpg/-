@@ -11,11 +11,16 @@
 
 import { PrismaClient } from '@prisma/client';
 
+import { resolveDatabaseUrl } from '../config/env.js';
+
+const datasourceUrl = resolveDatabaseUrl();
+
 export const prisma = new PrismaClient({
   // Warnings and errors only. Query logging is deliberately off in every
   // environment: Prisma's query log includes parameter values, which on the
   // auth paths means emails and raw refresh tokens would land in stdout.
   log: ['warn', 'error'],
+  ...(datasourceUrl === undefined ? {} : { datasourceUrl }),
 });
 
 /** Close the pool. Used by the server's shutdown path. */

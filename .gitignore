@@ -14,6 +14,8 @@ playwright/.cache/
 .env
 .env.*
 !.env.example
+# Local script with hardcoded OAuth credentials; never commit
+kiro_agent.py
 
 .DS_Store
 Thumbs.db

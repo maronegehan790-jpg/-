@@ -27,6 +27,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   // Only required when NODE_ENV=test; see resolveRedisUrl below.
   TEST_REDIS_URL: z.string().min(1).optional(),
+  // Only required when NODE_ENV=test; see resolveDatabaseUrl below.
+  TEST_DATABASE_URL: z.string().min(1).optional(),
   /**
    * Number of reverse-proxy hops to trust for `X-Forwarded-For`.
    *
@@ -74,4 +76,43 @@ export function resolveRedisUrl(): string {
     return testUrl;
   }
   return env.REDIS_URL;
+}
+
+// Under test, no fallback: the harness seeds and truncates only TEST_DATABASE_URL.
+export function resolveDatabaseUrl(): string | undefined {
+  if (isTest) {
+    const testUrl = env.TEST_DATABASE_URL;
+    if (testUrl === undefined) {
+      throw new Error(
+        'TEST_DATABASE_URL must be set when NODE_ENV=test. Without it the app would fall back to ' +
+          'DATABASE_URL and read and write the development database during tests.',
+      );
+    }
+    const devUrl = process.env.DATABASE_URL;
+    if (devUrl !== undefined && devUrl !== '' && samePostgresDatabase(testUrl, devUrl)) {
+      throw new Error(
+        'TEST_DATABASE_URL resolves to the same database as DATABASE_URL. Refusing to connect: ' +
+          'tests would read and write development data.',
+      );
+    }
+    return testUrl;
+  }
+  // undefined keeps the schema's env("DATABASE_URL"), the pre-existing behaviour.
+  return undefined;
+}
+
+// Compares host, port, and database name, so a query-string difference cannot slip past.
+function samePostgresDatabase(a: string, b: string): boolean {
+  if (a === b) return true;
+  try {
+    const [x, y] = [new URL(a), new URL(b)];
+    return (
+      x.hostname === y.hostname &&
+      (x.port || '5432') === (y.port || '5432') &&
+      x.pathname === y.pathname
+    );
+  } catch {
+    // Unparseable: refuse rather than guess, since the cost of a wrong "different" is dev data.
+    return true;
+  }
 }
