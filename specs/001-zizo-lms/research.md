@@ -16,7 +16,11 @@
 ### 1.2 Frontend Framework: React 18 + TypeScript + Tailwind CSS
 - **Decision**: React 18 (specifically React 18.3.x) initialized via Vite with TypeScript strict mode enabled (`"strict": true`, `noImplicitAny`, `strictNullChecks`, `noUncheckedIndexedAccess`).
 - **Styling**: Tailwind CSS v3 with typography and forms plugins.
-- **Routing & State**: React Router v6, TanStack Query (React Query) v5 for server state caching and optimistic updates, Axios with interceptors for token refresh.
+- **Routing & State**: React Router v7 (`react-router` 7.18.7), TanStack Query (React Query) v5 for server state caching and optimistic updates, Axios with interceptors for token refresh.
+  - **Superseded**: this entry originally specified React Router v6. The rationale for choosing React Router at all is unchanged — declarative client-side routing with nested routes, and route guards that can read the auth store directly.
+  - **Why v7 instead of v6**: v7 is the current major and the v6 line no longer receives feature work, so starting a new project on v6 would mean adopting a version already slated for migration. v7 also collapses `react-router-dom` back into a single `react-router` package, which removes the long-standing v6 ambiguity about which package to import `BrowserRouter` and `Route` from. The APIs this project uses (`BrowserRouter`, `Routes`, `Route`, and the navigation hooks) are unchanged from v6, so the upgrade cost at this point in the project was zero and the migration cost later would not have been.
+  - **Mode**: used as a plain routing library in declarative mode, not in v7's framework mode. No loaders, actions, or file-based routes are adopted, and no `react-router.config.ts` exists. Server state stays with TanStack Query and Axios as originally planned, so v7 changes the routing dependency without changing the data-fetching architecture.
+  - **Hosting consequence**: `BrowserRouter` uses real URL paths, so the production host MUST rewrite unknown paths to `index.html` (SPA fallback). Without it, a deep link such as the emailed `/reset-password?token=...` returns a 404 from the static host before React ever loads. This is a deployment requirement, not application code.
 - **Video Player**: Video.js or standard HTML5 `<video>` custom-styled player with signed URL ingestion and progress synchronization.
 - **Icons & UI Utilities**: Lucide-react, clsx, tailwind-merge, react-hot-toast.
 
@@ -59,6 +63,12 @@
 - **Deferred**: The specific provider (e.g. SES, Resend, Postmark, SendGrid) is NOT chosen in this version; the adapter and its credentials are configured via environment variables.
 - **Rationale**: Delivery is a vendor concern with no bearing on the reset flow's correctness. Keeping it behind an interface avoids blocking Phase 2 on a procurement decision and keeps the provider out of the test path.
 
+### 1.8 Rate Limiting: `express-rate-limit` Backed by Redis
+- **Decision**: `express-rate-limit` configured with a Redis store (`rate-limit-redis` over an `ioredis` client), not the library's default in-memory store. Redis is a required service in every environment (local Docker Compose, CI, production) and its connection is read from `REDIS_URL`.
+- **Scope**: Separate limiters for login, register, forgot-password, reset-password, and payment submission. Auth and password-reset limiters are keyed **both** per IP and per account identifier so a single account cannot be attacked from rotating IPs, and a single IP cannot enumerate many accounts.
+- **Rationale**: Constitution Principle III requires login and password-reset endpoints to be rate limited per IP *and* per account; Principle VI requires Redis to hold rate-limit counters. An in-memory store breaks both: counters reset on every deploy or restart, and with more than one Node process each replica keeps its own tally, multiplying the effective limit by the replica count and leaving the endpoint unprotected in exactly the horizontally-scaled setup it needs to defend.
+- **Alternatives Considered**: Default in-memory store (rejected: not shared across processes, lost on restart, violates Principle VI). Postgres-backed counters (rejected: write amplification on a hot path the database should not carry).
+
 ---
 
 ## 2. Security & Compliance Checklist (Constitution Alignment)
@@ -70,6 +80,6 @@
 | **Server-Side Authorization** | `authenticate` (JWT) + `requireRole` + `requireEnrollment` middlewares | Principle III |
 | **Password Security** | bcrypt with salt rounds ≥ 12 | Principle III |
 | **Signed URL Expiry** | Max 15 minutes (900 seconds) | Principle III |
-| **Rate Limiting** | `express-rate-limit` on `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/payments` | Principle III |
+| **Rate Limiting** | `express-rate-limit` with a Redis store (`rate-limit-redis` + `ioredis`) on `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password`, `/api/v1/payments`; counters live in Redis, never in process memory | Principle III, Principle VI |
 | **Schema Governance** | Prisma Migrate exclusively; atomic `$transaction` for enrollment | Principle IV |
 | **UX Consistency** | Inline validation, loading spinners, actionable error alerts, 360px mobile baseline | Principle V |
