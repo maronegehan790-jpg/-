@@ -16,7 +16,11 @@
 ### 1.2 Frontend Framework: React 18 + TypeScript + Tailwind CSS
 - **Decision**: React 18 (specifically React 18.3.x) initialized via Vite with TypeScript strict mode enabled (`"strict": true`, `noImplicitAny`, `strictNullChecks`, `noUncheckedIndexedAccess`).
 - **Styling**: Tailwind CSS v3 with typography and forms plugins.
-- **Routing & State**: React Router v6, TanStack Query (React Query) v5 for server state caching and optimistic updates, Axios with interceptors for token refresh.
+- **Routing & State**: React Router v7 (`react-router` 7.18.7), TanStack Query (React Query) v5 for server state caching and optimistic updates, Axios with interceptors for token refresh.
+  - **Superseded**: this entry originally specified React Router v6. The rationale for choosing React Router at all is unchanged — declarative client-side routing with nested routes, and route guards that can read the auth store directly.
+  - **Why v7 instead of v6**: v7 is the current major and the v6 line no longer receives feature work, so starting a new project on v6 would mean adopting a version already slated for migration. v7 also collapses `react-router-dom` back into a single `react-router` package, which removes the long-standing v6 ambiguity about which package to import `BrowserRouter` and `Route` from. The APIs this project uses (`BrowserRouter`, `Routes`, `Route`, and the navigation hooks) are unchanged from v6, so the upgrade cost at this point in the project was zero and the migration cost later would not have been.
+  - **Mode**: used as a plain routing library in declarative mode, not in v7's framework mode. No loaders, actions, or file-based routes are adopted, and no `react-router.config.ts` exists. Server state stays with TanStack Query and Axios as originally planned, so v7 changes the routing dependency without changing the data-fetching architecture.
+  - **Hosting consequence**: `BrowserRouter` uses real URL paths, so the production host MUST rewrite unknown paths to `index.html` (SPA fallback). Without it, a deep link such as the emailed `/reset-password?token=...` returns a 404 from the static host before React ever loads. This is a deployment requirement, not application code.
 - **Video Player**: Video.js or standard HTML5 `<video>` custom-styled player with signed URL ingestion and progress synchronization.
 - **Icons & UI Utilities**: Lucide-react, clsx, tailwind-merge, react-hot-toast.
 

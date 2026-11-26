@@ -152,6 +152,31 @@ description: "Task list for feature implementation of Zizo LMS"
 
 ---
 
+## Phase 3 Entry Gate — Mandatory Prerequisites
+
+**Purpose**: Finish the user-facing half of P0-F001 that Phase 2 deliberately left out. Phase 2 delivered the authentication backend, the frontend API client (T013), the auth store (T014), and the Forgot/Reset Password screens (T060/T061). It did not deliver any way to sign in or register from the UI, and no route is protected on the frontend.
+
+> **No Phase 3 feature implementation may begin until T074 is completed and verified.**
+
+- [ ] T074 Build the Login and Register pages and the frontend route guards, wired into the existing React Router setup in `frontend/src/App.tsx`, in `frontend/src/pages/auth/Login.tsx`, `frontend/src/pages/auth/Register.tsx`, and a route-guard component under `frontend/src/components/auth/`
+      - **Login page** at `/login`: email and password fields with inline format validation (FR-080), calling `login` from `authStore`. 401 shows "Invalid email or password". 429 shows a fixed "too many attempts" message. Server wording is never displayed, following the T060/T061 conventions (ref guard against double submit, `readOnly` + `aria-disabled` while sending, focus management).
+      - **Register page** at `/register`: name, email, and password fields. Client validation mirrors the backend `registerSchema`/`passwordSchema`. A 409 renders an inline duplicate-email error on the email field, not a page-level banner. No `role` field is sent (FR-001; see the T014 note on `register`).
+      - **Route guards**: unauthenticated users on a protected route are redirected to `/login`. Guards read `status` from `authStore` and MUST treat `initializing` as loading: render a loading state and redirect only on `anonymous`, so a signed-in user on a cold load never sees the login page flash (see the T014 note on `AuthStatus`). `initializeAuth` is called once at startup; the store is not yet wired into the app.
+      - **Role-based redirects** after login and for signed-in users opening `/login` or `/register`: ADMIN → `/admin`, STUDENT → `/dashboard`. The role comes from the store's `/auth/me` result, not from a token claim.
+      - **Access denied**: a STUDENT opening any `/admin` route sees an access-denied screen and the admin UI is never rendered. The backend 403 (T012) stays the authority; the guard only prevents rendering UI the API would refuse.
+      - **Tests** (Vitest, jsdom, in `frontend/tests/` or alongside the components): Login validation, 401 and 429 messages, and role redirects; Register validation, inline 409 error, and the absence of `role` in the request body; guard behavior for `initializing` (loading, no redirect), `anonymous` (redirect to `/login`), STUDENT on `/admin` (access denied), and ADMIN on `/admin` (renders). Remove `passWithNoTests` from `frontend/vitest.config.ts` once these tests exist.
+      - **Done when**: the tests above pass, `tsc --noEmit`, `eslint`, and `prettier --check` are clean, and both roles have been checked manually in a browser against a running backend.
+
+**Open acceptance-criteria follow-up** (recorded, not resolved; needs a product-owner decision; not part of the entry gate, but blocks marking P0-F001 complete):
+
+- [ ] T075 Resolve the P0-F001 account-lock discrepancy between `prd.md` and the implementation
+      - `prd.md` P0-F001 alternate flow A2 and its acceptance criterion require that "the account locks for 15 minutes after 5 failed logins".
+      - The implementation provides rate limiting, not an account lock: `loginIpLimiter` and `loginAccountLimiter` in `backend/src/middleware/rateLimit.ts` allow 5 requests per 15-minute window per IP and per submitted email, counted in Redis (T073). This matches `contracts/auth.md` section 2, so the contract and the PRD disagree.
+      - Behavioral differences: the limiter counts every attempt, successful ones included; it blocks until its window resets rather than for 15 minutes from the fifth failure; and nothing is recorded on the account itself.
+      - Decide one of: (a) implement a true lock and update the contract, or (b) amend the PRD criterion to describe rate limiting. Either change requires approval. Until then the criterion stays unchecked and P0-F001 cannot be marked complete.
+
+---
+
 ## Phase 3: User Story 1 - Admin Builds and Publishes a Course Catalog (Priority: P1)
 
 **Goal**: Admin creates courses, sections, uploads videos/attachments, and publishes them to the catalog.

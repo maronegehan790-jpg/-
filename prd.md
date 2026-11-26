@@ -156,6 +156,8 @@ The Admin (the instructor), who manages courses, reviews payments, and supports 
 | P0-F007 | Video Comments | TODO | Students and Admin post comments and replies under each video | Frontend Dev / Backend Dev | Sprint 2 |
 | P0-F008 | Admin–Student Chat | TODO | One-to-one real-time chat between each Student and the Admin in both dashboards | Backend Dev / Frontend Dev | Sprint 2 |
 
+> **Note on P0-F001 status (2026-11-26):** P0-F001 stays `TODO`. The authentication backend foundation is implemented (register, login, refresh rotation, logout, role-based authorization, forgot/reset password, Redis rate limiting), along with the frontend API client, auth store, and Forgot/Reset Password screens. The user-facing feature is not complete: the Login and Register pages, frontend route guards, and role-based redirects are tracked as T074 in `specs/001-zizo-lms/tasks.md`, a mandatory prerequisite before Phase 3. The "account locks for 15 minutes after 5 failed logins" criterion is also unresolved: the implementation rate-limits login attempts rather than locking the account, recorded as T075 pending a decision.
+
 ### Should Have — P1
 
 | ID | Feature | Status | Description | Assigned To | Sprint |
