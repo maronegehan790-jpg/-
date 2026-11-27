@@ -7,7 +7,10 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
     setupFiles: ['./tests/setup.ts'],
-    // No tests exist yet in Phase 1; remove once the first tests land.
-    passWithNoTests: true,
+    // `services/api.ts` throws at module load when this is unset, and the auth
+    // store imports it. Mirrors `.env.example`; no request is actually sent.
+    env: {
+      VITE_API_URL: 'http://localhost:5000/api/v1',
+    },
   },
 });
