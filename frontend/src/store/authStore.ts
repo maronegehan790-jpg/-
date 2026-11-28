@@ -346,8 +346,14 @@ export async function logout(): Promise<void> {
   }
 }
 
-/** Type guard for the normalised error shape produced by `toApiError`. */
-function isApiError(value: unknown): value is ApiError {
+/**
+ * Type guard for the normalised error shape produced by `toApiError`.
+ *
+ * Exported for the forms that call `login`/`register`: those reject with this
+ * shape rather than an AxiosError, so passing the caught value back through
+ * `toApiError` would flatten a 401 to status 0.
+ */
+export function isApiError(value: unknown): value is ApiError {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
